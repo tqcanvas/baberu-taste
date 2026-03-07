@@ -3,10 +3,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "node --import tsx src/cli/ingest-anilist-page.ts",
+    "dev": "node --import tsx src/http/server.ts",
     "build": "tsc -p tsconfig.json",
     "test": "node --import tsx --test src/**/*.test.ts",
     "lint": "tsc --noEmit -p tsconfig.json",
+    "serve": "node --import tsx src/http/server.ts",
     "ingest:anilist:page": "node --import tsx src/cli/ingest-anilist-page.ts",
     "sync:anilist:manga": "node --import tsx src/cli/sync-anilist-manga.ts"
   },
