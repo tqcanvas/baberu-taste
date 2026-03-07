@@ -8,6 +8,7 @@
     "test": "node --import tsx --test src/**/*.test.ts",
     "lint": "tsc --noEmit -p tsconfig.json",
     "ingest:anilist:page": "node --import tsx src/cli/ingest-anilist-page.ts",
+    "sync:anilist:manga:catalog": "node --import tsx src/cli/sync-anilist-manga-catalog.ts",
     "sync:anilist:manga": "node --import tsx src/cli/sync-anilist-manga.ts"
   },
   "dependencies": {
