@@ -16,7 +16,7 @@
 
     "dev:web": "npm run dev -w apps/web",
     "dev:api": "npm run dev -w apps/api",
-    "ingest:anilist:page": "npm run ingest:anilist:page -w apps/api --",
+    "sync:anilist:manga:debug": "npm run sync:anilist:manga:debug -w apps/api --",
     "sync:anilist:manga:catalog": "npm run sync:anilist:manga:catalog -w apps/api --",
     "sync:anilist:manga": "npm run sync:anilist:manga -w apps/api --",
 

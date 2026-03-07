@@ -67,7 +67,7 @@ function parseArgs(argv: string[]): CliArgs {
 }
 
 function printValidationFailureSummary(fetchedCount: number, validationErrors: string[]): void {
-  console.error("AniList ingestion failed validation.");
+  console.error("AniList manga debug sync failed validation.");
   console.error(`Fetched: ${fetchedCount}`);
   console.error(`Validation failures: ${validationErrors.length}`);
 
@@ -96,7 +96,7 @@ async function main(): Promise<void> {
     persistAniListPage(client, mappedPage.records),
   );
 
-  console.log("AniList ingestion complete.");
+  console.log("AniList manga debug sync complete.");
   console.log(`Fetched: ${media.length}`);
   console.log(`Inserted: ${persisted.insertedCount}`);
   console.log(`Updated: ${persisted.updatedCount}`);
@@ -106,7 +106,6 @@ async function main(): Promise<void> {
 
 main().catch((error: unknown) => {
   const message = error instanceof Error ? error.message : String(error);
-  console.error(`AniList ingestion failed: ${message}`);
+  console.error(`AniList manga debug sync failed: ${message}`);
   process.exitCode = 1;
 });
-
