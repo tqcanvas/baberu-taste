@@ -1,0 +1,10 @@
+{
+  "name": "baberu-api",
+  "private": true,
+  "scripts": {
+    "dev": "echo \"api dev command not set yet\"",
+    "build": "echo \"api build command not set yet\"",
+    "test": "echo \"api test command not set yet\"",
+    "lint": "echo \"api lint command not set yet\""
+  }
+}

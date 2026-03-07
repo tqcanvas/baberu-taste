@@ -1,0 +1,23 @@
+{
+  "name": "baberu-taste",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "install:all": "npm install --workspaces",
+
+    "dev:web": "npm run dev -w apps/web",
+    "dev:api": "npm run dev -w apps/api",
+
+    "build:web": "npm run build -w apps/web",
+    "build:api": "npm run build -w apps/api",
+
+    "test:web": "npm run test -w apps/web",
+    "test:api": "npm run test -w apps/api",
+
+    "lint:web": "npm run lint -w apps/web",
+    "lint:api": "npm run lint -w apps/api"
+  }
+}

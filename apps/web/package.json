@@ -1,0 +1,10 @@
+{
+  "name": "baberu-web",
+  "private": true,
+  "scripts": {
+    "dev": "echo \"web dev command not set yet\"",
+    "build": "echo \"web build command not set yet\"",
+    "test": "echo \"web test command not set yet\"",
+    "lint": "echo \"web lint command not set yet\""
+  }
+}

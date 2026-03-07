@@ -1,0 +1,12 @@
+# Dependencies
+node_modules/
+
+# Builds/Artifacts
+dist/
+build/
+
+# OS files
+.DS_Store
+
+# IDE
+.idea
