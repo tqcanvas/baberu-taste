@@ -8,6 +8,12 @@
   "scripts": {
     "install:all": "npm install --workspaces",
 
+    "db:up": "docker compose --env-file infra/postgres/.env -f infra/postgres/compose.yml up -d",
+    "db:down": "docker compose --env-file infra/postgres/.env -f infra/postgres/compose.yml down",
+    "db:logs": "docker compose --env-file infra/postgres/.env -f infra/postgres/compose.yml logs -f postgres",
+    "db:migrate": "./scripts/db/migrate-local.sh",
+    "db:psql": "./scripts/db/psql-local.sh",
+
     "dev:web": "npm run dev -w apps/web",
     "dev:api": "npm run dev -w apps/api",
 

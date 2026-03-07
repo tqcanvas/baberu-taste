@@ -10,3 +10,10 @@ build/
 
 # IDE
 .idea
+
+# Local environment files
+.env
+infra/postgres/.env
+apps/api/.env
+apps/web/.env
+apps/web/.env.local
