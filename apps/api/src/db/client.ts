@@ -39,3 +39,25 @@ export async function withDatabaseTransaction<T>(
     }
   });
 }
+
+export async function withAdvisoryLock<T>(
+  client: Client,
+  key1: number,
+  key2: number,
+  operation: () => Promise<T>,
+): Promise<T> {
+  const lockResult = await client.query<{ locked: boolean }>(
+    "SELECT pg_try_advisory_lock($1, $2) AS locked",
+    [key1, key2],
+  );
+
+  if (!lockResult.rows[0]?.locked) {
+    throw new Error("Another AniList manga catalog sync is already running");
+  }
+
+  try {
+    return await operation();
+  } finally {
+    await client.query("SELECT pg_advisory_unlock($1, $2)", [key1, key2]);
+  }
+}

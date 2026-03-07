@@ -1,8 +1,19 @@
-import type { AniListMedia, AniListPageResponse } from "../ingestion/anilist/types.js";
+import type {
+  AniListMedia,
+  AniListMediaPage,
+  AniListPageResponse,
+} from "../ingestion/anilist/types.js";
 
 const ANILIST_CATALOG_PAGE_QUERY = `
   query AniListMangaPage($page: Int!, $perPage: Int!) {
     Page(page: $page, perPage: $perPage) {
+      pageInfo {
+        currentPage
+        hasNextPage
+        lastPage
+        perPage
+        total
+      }
       media(type: MANGA, sort: ID) {
         id
         siteUrl
@@ -46,6 +57,13 @@ const ANILIST_CATALOG_PAGE_QUERY = `
 const ANILIST_UPDATED_PAGE_QUERY = `
   query AniListMangaUpdatesPage($page: Int!, $perPage: Int!) {
     Page(page: $page, perPage: $perPage) {
+      pageInfo {
+        currentPage
+        hasNextPage
+        lastPage
+        perPage
+        total
+      }
       media(type: MANGA, sort: [UPDATED_AT_DESC, ID_DESC]) {
         id
         siteUrl
@@ -95,7 +113,7 @@ async function executeAniListPageQuery(
   page: number,
   perPage: number,
   query: string,
-): Promise<AniListMedia[]> {
+): Promise<AniListMediaPage> {
   const response = await fetch(apiUrl, {
     method: "POST",
     headers: {
@@ -129,7 +147,10 @@ async function executeAniListPageQuery(
     throw new Error(`AniList GraphQL error: ${formatGraphQLErrors(payload.errors)}`);
   }
 
-  return payload.data?.Page?.media ?? [];
+  return {
+    media: payload.data?.Page?.media ?? [],
+    pageInfo: payload.data?.Page?.pageInfo ?? null,
+  };
 }
 
 export async function fetchAniListMangaPage(
@@ -137,6 +158,15 @@ export async function fetchAniListMangaPage(
   page: number,
   perPage: number,
 ): Promise<AniListMedia[]> {
+  const result = await executeAniListPageQuery(apiUrl, page, perPage, ANILIST_CATALOG_PAGE_QUERY);
+  return result.media;
+}
+
+export async function fetchAniListMangaCatalogPage(
+  apiUrl: string,
+  page: number,
+  perPage: number,
+): Promise<AniListMediaPage> {
   return executeAniListPageQuery(apiUrl, page, perPage, ANILIST_CATALOG_PAGE_QUERY);
 }
 
@@ -145,5 +175,6 @@ export async function fetchAniListUpdatedMangaPage(
   page: number,
   perPage: number,
 ): Promise<AniListMedia[]> {
-  return executeAniListPageQuery(apiUrl, page, perPage, ANILIST_UPDATED_PAGE_QUERY);
+  const result = await executeAniListPageQuery(apiUrl, page, perPage, ANILIST_UPDATED_PAGE_QUERY);
+  return result.media;
 }

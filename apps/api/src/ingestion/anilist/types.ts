@@ -39,8 +39,17 @@ export interface AniListMedia {
 
 export interface AniListPageData {
   Page: {
+    pageInfo: AniListPageInfo | null;
     media: AniListMedia[] | null;
   } | null;
+}
+
+export interface AniListPageInfo {
+  currentPage: number | null;
+  hasNextPage: boolean | null;
+  lastPage: number | null;
+  perPage: number | null;
+  total: number | null;
 }
 
 export interface AniListGraphQLError {
@@ -139,4 +148,31 @@ export interface SyncAniListMangaResult extends PersistPageResult {
   boundaryBefore: SyncBoundary;
   boundaryAfter: SyncBoundary;
   boundarySaved: boolean;
+}
+
+export type CatalogSyncStatus = "idle" | "running" | "failed" | "completed";
+
+export interface AniListMediaPage {
+  media: AniListMedia[];
+  pageInfo: AniListPageInfo | null;
+}
+
+export interface CatalogSyncCheckpoint {
+  nextPage: number;
+  perPage: number;
+  lastProcessedSourceId: number | null;
+  totalPagesProcessed: number;
+  totalRecordsProcessed: number;
+  status: CatalogSyncStatus;
+  failureCount: number;
+  lastError: string | null;
+}
+
+export interface SyncAniListMangaCatalogResult extends PersistPageResult {
+  fetchedCount: number;
+  pageCount: number;
+  startPage: number;
+  endPage: number;
+  checkpoint: CatalogSyncCheckpoint;
+  stopReason: "completed" | "max-pages";
 }
