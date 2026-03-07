@@ -4,6 +4,7 @@ node_modules/
 # Builds/Artifacts
 dist/
 build/
+.env
 
 # OS files
 .DS_Store
