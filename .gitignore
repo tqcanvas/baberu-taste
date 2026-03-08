@@ -4,6 +4,7 @@ node_modules/
 # Builds/Artifacts
 dist/
 build/
+/backups/
 .env
 
 # OS files
