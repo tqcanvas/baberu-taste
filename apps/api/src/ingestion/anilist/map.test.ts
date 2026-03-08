@@ -98,6 +98,32 @@ test("mapAniListPage maps AniList fields into the normalized record shape", () =
   assert.match(record.payloadHash, /^[a-f0-9]{64}$/);
 });
 
+test("mapAniListPage nulls invalid AniList date parts instead of persisting them", () => {
+  const media = buildMedia({
+    id: 87373,
+    startDate: {
+      year: 2013,
+      month: 2,
+      day: 26,
+    },
+    endDate: {
+      year: 2015,
+      month: 20,
+      day: 1,
+    },
+  });
+
+  const result = mapAniListPage([media]);
+  const record = result.records[0];
+
+  assert.equal(result.validationErrors.length, 0);
+  assert.equal(record.contentItem.startMonth, 2);
+  assert.equal(record.contentItem.startDay, 26);
+  assert.equal(record.contentItem.endYear, 2015);
+  assert.equal(record.contentItem.endMonth, null);
+  assert.equal(record.contentItem.endDay, 1);
+});
+
 test("mapAniListPage rejects records that do not have any usable title", () => {
   const media = buildMedia({
     id: 999,
@@ -119,4 +145,3 @@ test("mapAniListPage rejects records that do not have any usable title", () => {
     },
   ]);
 });
-

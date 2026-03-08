@@ -21,9 +21,10 @@ import type {
 const ANILIST_MANGA_CATALOG_LOCK_KEY_1 = 2026;
 const ANILIST_MANGA_CATALOG_LOCK_KEY_2 = 1;
 const ANILIST_MAX_PER_PAGE = 50;
-const DEFAULT_REQUESTS_PER_MINUTE = 30;
+const DEFAULT_REQUESTS_PER_MINUTE = 20;
 const DEFAULT_RETRY_LIMIT = 3;
 const DEFAULT_BASE_BACKOFF_MS = 2000;
+const RATE_LIMIT_COOLDOWN_MS = 60_000;
 
 export interface SyncAniListMangaCatalogOptions {
   apiUrl: string;
@@ -185,6 +186,11 @@ function isRetryableError(error: unknown): boolean {
   return !message.includes("validation failed");
 }
 
+function isRateLimitError(error: unknown): boolean {
+  const message = parseErrorMessage(error).toLowerCase();
+  return message.includes("status 429") || message.includes("too many requests");
+}
+
 async function fetchPageWithRetries(
   options: {
     apiUrl: string;
@@ -196,7 +202,9 @@ async function fetchPageWithRetries(
   dependencies: CatalogSyncDependencies,
   throttle: RequestThrottle,
 ): Promise<AniListMediaPage> {
-  for (let attempt = 1; ; attempt += 1) {
+  let attempt = 1;
+
+  for (;;) {
     await throttle.waitTurn();
 
     try {
@@ -220,17 +228,34 @@ async function fetchPageWithRetries(
     } catch (error) {
       const message = parseErrorMessage(error);
       const retryable = isRetryableError(error);
+      const rateLimited = isRateLimitError(error);
 
       dependencies.logger.error("anilist.catalog.fetch.failure", {
         page: options.page,
         perPage: options.perPage,
         attempt,
         retryable,
+        rateLimited,
         message,
       });
 
-      if (!retryable || attempt > options.retryLimit) {
+      if (!retryable) {
         throw error;
+      }
+
+      if (attempt > options.retryLimit) {
+        if (!rateLimited) {
+          throw error;
+        }
+
+        dependencies.logger.warn("anilist.catalog.fetch.cooldown", {
+          page: options.page,
+          cooldownMs: RATE_LIMIT_COOLDOWN_MS,
+        });
+
+        await dependencies.sleep(RATE_LIMIT_COOLDOWN_MS);
+        attempt = 1;
+        continue;
       }
 
       const backoffMs = options.baseBackoffMs * 2 ** (attempt - 1);
@@ -240,6 +265,7 @@ async function fetchPageWithRetries(
         backoffMs,
       });
       await dependencies.sleep(backoffMs);
+      attempt += 1;
     }
   }
 }

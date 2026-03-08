@@ -154,94 +154,105 @@ test("syncAniListMangaCatalog resumes from the saved checkpoint and persists pag
   assert.deepEqual(persistedPages, [[30101, 30102], [30103, 30104]]);
 });
 
-test("syncAniListMangaCatalog retries transient fetch failures and records fatal ones", async () => {
+test("syncAniListMangaCatalog cools down for one minute after repeated 429 responses", async () => {
   let attempt = 0;
   const sleeps: number[] = [];
-  const errors: string[] = [];
-  const savedFailures: Array<{ page: number; message: string }> = [];
+  const warnings: string[] = [];
+  let persisted = false;
 
-  await assert.rejects(
-    syncAniListMangaCatalog(
-      {
-        apiUrl: "https://graphql.anilist.co",
-        databaseUrl: "postgresql://example",
-        maxPages: 1,
-        retryLimit: 1,
+  const result = await syncAniListMangaCatalog(
+    {
+      apiUrl: "https://graphql.anilist.co",
+      databaseUrl: "postgresql://example",
+      maxPages: 1,
+      retryLimit: 1,
+    },
+    {
+      async fetchPage() {
+        attempt += 1;
+
+        if (attempt <= 3) {
+          throw new Error("AniList request failed with status 429: Too Many Requests");
+        }
+
+        return buildPage(1, true, [30001, 30002]);
       },
-      {
-        async fetchPage() {
-          attempt += 1;
-          throw new Error(`fetch failed ${attempt}`);
-        },
-        async sleep(milliseconds: number) {
-          sleeps.push(milliseconds);
-        },
-        now: () => 0,
+      async sleep(milliseconds: number) {
+        sleeps.push(milliseconds);
+      },
+      now: () => 0,
       async withClient<T>(_databaseUrl: string, operation: (client: Client) => Promise<T>) {
         const fakeClient = {
           async query(sql: string) {
             if (sql.includes("pg_try_advisory_lock")) {
-                return { rowCount: 1, rows: [{ locked: true }] };
-              }
-              return { rowCount: 0, rows: [] };
-            },
-          };
-
-          return operation(fakeClient as never);
-        },
-        async loadCheckpoint() {
-          return {
-            nextPage: 1,
-            perPage: 50,
-            lastProcessedSourceId: null,
-            totalPagesProcessed: 0,
-            totalRecordsProcessed: 0,
-            status: "idle",
-            failureCount: 0,
-            lastError: null,
-          };
-        },
-        async resetCheckpoint() {
-          throw new Error("resetCheckpoint should not be called");
-        },
-        async markRunning(_client: Client, checkpoint: CatalogSyncCheckpoint) {
-          return {
-            ...checkpoint,
-            status: "running",
-          };
-        },
-        async persistPage() {
-          throw new Error("persistPage should not be called");
-        },
-        async saveFailure(
-          _client: Client,
-          checkpoint: CatalogSyncCheckpoint,
-          page: number,
-          errorMessage: string,
-        ) {
-          savedFailures.push({ page, message: errorMessage });
-          return {
-            ...checkpoint,
-            status: "failed",
-            failureCount: checkpoint.failureCount + 1,
-            lastError: errorMessage,
-          };
-        },
-        logger: {
-          info() {},
-          warn() {},
-          error(_event: string, fields: Record<string, unknown>) {
-            errors.push(String(fields.message ?? ""));
+              return { rowCount: 1, rows: [{ locked: true }] };
+            }
+            return { rowCount: 0, rows: [] };
           },
-        },
+        };
+
+        return operation(fakeClient as never);
       },
-    ),
-    /fetch failed 2/,
+      async loadCheckpoint() {
+        return {
+          nextPage: 1,
+          perPage: 50,
+          lastProcessedSourceId: null,
+          totalPagesProcessed: 0,
+          totalRecordsProcessed: 0,
+          status: "idle",
+          failureCount: 0,
+          lastError: null,
+        };
+      },
+      async resetCheckpoint() {
+        throw new Error("resetCheckpoint should not be called");
+      },
+      async markRunning(_client: Client, checkpoint: CatalogSyncCheckpoint) {
+        return {
+          ...checkpoint,
+          status: "running",
+        };
+      },
+      async persistPage(
+        _client: Client,
+        _page,
+        checkpoint: CatalogSyncCheckpoint,
+      ): Promise<{ persisted: PersistPageResult; checkpoint: CatalogSyncCheckpoint }> {
+        persisted = true;
+
+        return {
+          persisted: {
+            insertedCount: 2,
+            updatedCount: 0,
+            titleRowsWritten: 4,
+          },
+          checkpoint: {
+            ...checkpoint,
+            nextPage: 2,
+            totalPagesProcessed: checkpoint.totalPagesProcessed + 1,
+            totalRecordsProcessed: checkpoint.totalRecordsProcessed + 2,
+            status: "running",
+          },
+        };
+      },
+      async saveFailure() {
+        throw new Error("saveFailure should not be called when cooldown recovers");
+      },
+      logger: {
+        info() {},
+        warn(event: string, fields: Record<string, unknown>) {
+          warnings.push(`${event}:${String(fields.cooldownMs ?? fields.backoffMs ?? "")}`);
+        },
+        error() {},
+      },
+    },
   );
 
-  assert.equal(attempt, 2);
-  assert.deepEqual(sleeps, [2000, 2000]);
-  assert.deepEqual(savedFailures, [{ page: 1, message: "fetch failed 2" }]);
-  assert.ok(errors.some((message) => message.includes("fetch failed 1")));
-  assert.ok(errors.some((message) => message.includes("fetch failed 2")));
+  assert.equal(attempt, 4);
+  assert.equal(persisted, true);
+  assert.equal(result.pageCount, 1);
+  assert.deepEqual(sleeps.slice(0, 3), [2000, 3000, 60_000]);
+  assert.ok(sleeps.includes(60_000));
+  assert.ok(warnings.includes("anilist.catalog.fetch.cooldown:60000"));
 });

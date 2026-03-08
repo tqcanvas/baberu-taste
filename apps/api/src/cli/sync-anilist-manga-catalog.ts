@@ -22,7 +22,7 @@ function parsePositiveInteger(value: string, flagName: string): number {
 
 function parseArgs(argv: string[]): CliArgs {
   let perPage = 50;
-  let requestsPerMinute = 30;
+  let requestsPerMinute = 20;
   let retryLimit = 3;
   let maxPages: number | undefined;
   let startPage: number | undefined;

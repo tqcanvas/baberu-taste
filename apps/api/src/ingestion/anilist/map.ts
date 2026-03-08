@@ -50,6 +50,22 @@ function toDate(unixSeconds: number | null): Date | null {
   return new Date(unixSeconds * 1000);
 }
 
+function sanitizeMonth(value: number | null | undefined): number | null {
+  if (typeof value !== "number" || !Number.isInteger(value) || value < 1 || value > 12) {
+    return null;
+  }
+
+  return value;
+}
+
+function sanitizeDay(value: number | null | undefined): number | null {
+  if (typeof value !== "number" || !Number.isInteger(value) || value < 1 || value > 31) {
+    return null;
+  }
+
+  return value;
+}
+
 function buildTitles(media: AniListMedia): { displayTitle: string | null; titles: MappedTitle[] } {
   const explicitCandidates: TitleCandidate[] = [];
 
@@ -177,11 +193,11 @@ export function mapAniListPage(mediaList: AniListMedia[]): MapAniListPageResult 
         countryOfOrigin: media.countryOfOrigin ?? null,
         isAdult: media.isAdult ?? false,
         startYear: media.startDate?.year ?? null,
-        startMonth: media.startDate?.month ?? null,
-        startDay: media.startDate?.day ?? null,
+        startMonth: sanitizeMonth(media.startDate?.month),
+        startDay: sanitizeDay(media.startDate?.day),
         endYear: media.endDate?.year ?? null,
-        endMonth: media.endDate?.month ?? null,
-        endDay: media.endDate?.day ?? null,
+        endMonth: sanitizeMonth(media.endDate?.month),
+        endDay: sanitizeDay(media.endDate?.day),
       },
       mangaDetails: {
         chapters: media.chapters ?? null,
