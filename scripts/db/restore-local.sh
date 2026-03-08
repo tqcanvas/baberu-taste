@@ -7,9 +7,10 @@ COMPOSE_DIR="$ROOT_DIR/infra/postgres"
 ENV_FILE="$COMPOSE_DIR/.env"
 COMPOSE_FILE="$COMPOSE_DIR/compose.yml"
 INPUT_PATH=${1:-}
+TARGET_DB=${2:-}
 
 if [ -z "$INPUT_PATH" ]; then
-  echo "Usage: $0 <backup-file>" >&2
+  echo "Usage: $0 <backup-file> [target-db]" >&2
   exit 1
 fi
 
@@ -27,15 +28,19 @@ set -a
 . "$ENV_FILE"
 set +a
 
+if [ -z "$TARGET_DB" ]; then
+  TARGET_DB=$POSTGRES_DB
+fi
+
 case "$INPUT_PATH" in
   *.sql)
     docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" exec -T postgres \
-      psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" <"$INPUT_PATH"
+      psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$TARGET_DB" <"$INPUT_PATH"
     ;;
   *)
     docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" exec -T postgres \
-      pg_restore -U "$POSTGRES_USER" -d "$POSTGRES_DB" --clean --if-exists <"$INPUT_PATH"
+      pg_restore -U "$POSTGRES_USER" -d "$TARGET_DB" --clean --if-exists <"$INPUT_PATH"
     ;;
 esac
 
-echo "Restore completed from $INPUT_PATH"
+echo "Restore completed from $INPUT_PATH into $TARGET_DB"
